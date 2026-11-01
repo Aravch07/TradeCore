@@ -1,5 +1,7 @@
 # Verification and measurement
 
+Verified on 1 November 2026: Windows GCC native tests passed 572,050 assertions; native/WebAssembly snapshots matched on all four replay fixtures. The GitHub Linux workflow also passed the C suite, AddressSanitizer, UndefinedBehaviorSanitizer and WebAssembly parity checks. These are correctness checks, not performance claims. The public Vercel deployment serves the same WebAssembly bytes as the tested local build.
+
 ## Reproduce
 
 Windows: `./build.ps1 -Wasm -Test`, then `node tests/test-wasm.mjs`.

@@ -2,6 +2,8 @@
 
 **The market, explained.** A C-first stock exchange order-matching simulator with a professional browser dashboard and a native command-line interface.
 
+**[Open the live website](https://tradecore-liart.vercel.app)** · [C engine and memory-safety checks](https://github.com/Aravch07/TradeCore/actions/workflows/ci.yml)
+
 > Academic simulation only. TCX, the shares, participants and trades are fictitious. No money, broker connection, settlement or investment advice.
 
 ![TradeCore market terminal](docs/screenshots/dashboard.png)
