@@ -1,0 +1,21 @@
+name: C engine and WebAssembly
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run C tests
+        run: make test
+      - name: Address and undefined-behavior sanitizers
+        run: |
+          cc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude src/engine.c tests/test_engine.c -o build/test-sanitized
+          ./build/test-sanitized
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify browser JavaScript and compiled C parity
+        run: |
+          make all
+          node --check web/app.js
+          node tests/test-wasm.mjs

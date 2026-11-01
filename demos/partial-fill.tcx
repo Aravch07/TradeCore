@@ -1,0 +1,7 @@
+# Exact proposal example. Prices in rupees; quantities in whole shares.
+sell 100.00 80
+sell 100.00 70
+sell 101.00 100
+sell 102.00 40
+buy 101.00 200
+buy 101.00 80

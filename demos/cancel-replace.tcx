@@ -1,0 +1,6 @@
+sell 101.00 20
+sell 101.00 30
+sell 101.00 40
+cancel 2
+replace 1 102.00 50
+buy 101.00 25
