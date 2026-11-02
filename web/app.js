@@ -12,6 +12,7 @@ $$('a[data-view]').forEach(a=>a.addEventListener('click',()=>{if(location.hash==
 let engine, snapshot, side=0, activity='orders', chartMode='candles', treeSide=0;
 let selectedLevel=null, selectedEvent=null, timer=null, scenarioTimer=null, toastTimer;
 let currentView='terminal', durations=[], lastBenchmark=null, storageWarning=false;
+let treeViewportSide=null;
 let session={version:1,base:'market',scenario:0,commands:[]};
 const key='tradecore.session.v1';
 const money=(v)=>Number(v/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -34,7 +35,7 @@ function call(name,args=[]){
 function baseEngine(data){if(data.base==='market')engine.tc_seed_market();else if(data.base==='scenario')engine.tc_scenario(data.scenario);else engine.tc_reset(42);}
 function newSession(base='market',scenario=0){
   stopSimulation();stopScenario();session={version:1,base,scenario,commands:[]};baseEngine(session);
-  durations=[];lastBenchmark=null;selectedLevel=null;selectedEvent=null;snapshot=readSnapshot();persist();render();
+  durations=[];lastBenchmark=null;selectedLevel=null;selectedEvent=null;treeViewportSide=null;snapshot=readSnapshot();persist();render();
 }
 function validSession(data){
   if(!data||data.version!==1||!['market','empty','scenario'].includes(data.base)||!Array.isArray(data.commands)||data.commands.length>10000)return false;
@@ -87,23 +88,23 @@ function renderTerminal(){
 function drawChart(){const root=$('#price-chart'),trades=snapshot.trades.slice(-960);
   if(!trades.length){root.innerHTML='<div class="chart-empty">Your chart begins with the first trade.<br>Place matching orders or start a simulation.</div>';return;}
   const candles=snapshot.candles?.slice(-60)||[];
-  const w=600,h=280,l=6,r=67,top=17,bottom=220,plotW=w-l-r;
+  const w=Math.max(260,root.clientWidth-16),h=Math.max(280,root.clientHeight-2),l=6,r=86,top=18,bottom=h-68,plotW=w-l-r,volumeBase=h-23;
   const values=chartMode==='candles'&&candles.length?candles.flatMap(c=>[c.high,c.low]):trades.map(t=>t.price);
   const rawLow=Math.min(...values),rawHigh=Math.max(...values),pad=Math.max((rawHigh-rawLow)*.15,30),low=rawLow-pad,high=rawHigh+pad;
   const y=p=>top+(high-p)/(high-low)*(bottom-top),x=(i,n)=>l+(i+.5)*plotW/n;
   let svg=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="TCX simulated execution prices"><defs><linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#b7cda0" stop-opacity=".3"/><stop offset="100%" stop-color="#edf4e6" stop-opacity=".02"/></linearGradient></defs>`;
-  for(let i=0;i<5;i++){const p=high-(high-low)*i/4,yy=y(p);svg+=`<line x1="${l}" y1="${yy}" x2="${w-r+4}" y2="${yy}" stroke="#edf1e7" stroke-dasharray="3 4"/><text x="${w-r+12}" y="${yy+3}" font-size="9" fill="#a6b098" font-family="DM Sans,Segoe UI,sans-serif">${money(p)}</text>`;}
+  for(let i=0;i<5;i++){const p=high-(high-low)*i/4,yy=y(p);svg+=`<line x1="${l}" y1="${yy}" x2="${w-r+4}" y2="${yy}" stroke="#edf1e7" stroke-dasharray="3 4"/><text x="${w-r+12}" y="${yy+4}" font-size="12" fill="#718266" font-family="DM Sans,Segoe UI,sans-serif">${money(p)}</text>`;}
   if(chartMode==='candles'&&candles.length){const maxVol=Math.max(...candles.map(c=>c.volume),1),bw=Math.max(1,Math.min(6,plotW/candles.length*.55));
     candles.forEach((c,i)=>{const xx=x(i,candles.length),color=c.close>=c.open?'#86a86a':'#ce9986',yy=Math.min(y(c.open),y(c.close)),hh=Math.max(1,Math.abs(y(c.open)-y(c.close)));
-      svg+=`<line x1="${xx}" y1="${y(c.high)}" x2="${xx}" y2="${y(c.low)}" stroke="${color}" stroke-width="1"/><rect x="${xx-bw/2}" y="${yy}" width="${bw}" height="${hh}" fill="${color}" rx=".5"/><rect x="${xx-bw/2}" y="${263-c.volume/maxVol*25}" width="${bw}" height="${c.volume/maxVol*25}" fill="${color}" opacity=".27"/>`;
+      svg+=`<line x1="${xx}" y1="${y(c.high)}" x2="${xx}" y2="${y(c.low)}" stroke="${color}" stroke-width="1"/><rect x="${xx-bw/2}" y="${yy}" width="${bw}" height="${hh}" fill="${color}" rx=".5"/><rect x="${xx-bw/2}" y="${volumeBase-c.volume/maxVol*25}" width="${bw}" height="${c.volume/maxVol*25}" fill="${color}" opacity=".27"/>`;
     });
   }else{const ps=trades.slice(-160),points=ps.map((t,i)=>`${x(i,ps.length)},${y(t.price)}`).join(' '),first=x(0,ps.length),last=x(ps.length-1,ps.length);
     svg+=`<polygon points="${first},${bottom} ${points} ${last},${bottom}" fill="url(#chart-fill)"/><polyline points="${points}" fill="none" stroke="#83a369" stroke-width="1.8"/>`;
-    const maxV=Math.max(...ps.map(t=>t.quantity));ps.forEach((t,i)=>{svg+=`<rect x="${x(i,ps.length)}" y="${263-t.quantity/maxV*24}" width="${Math.max(1,plotW/ps.length*.55)}" height="${t.quantity/maxV*24}" fill="#c3d3b3" opacity=".6"/>`;});
+    const maxV=Math.max(...ps.map(t=>t.quantity));ps.forEach((t,i)=>{svg+=`<rect x="${x(i,ps.length)}" y="${volumeBase-t.quantity/maxV*24}" width="${Math.max(1,plotW/ps.length*.55)}" height="${t.quantity/maxV*24}" fill="#c3d3b3" opacity=".6"/>`;});
   }
   const last=trades[trades.length-1].price,yy=y(last);
-  svg+=`<line x1="${l}" y1="${yy}" x2="${w-r+5}" y2="${yy}" stroke="#8bab75" stroke-width=".8" stroke-dasharray="3 3"/><rect x="${w-r+6}" y="${yy-8}" width="59" height="16" rx="2" fill="#8eaa76"/><text x="${w-r+35}" y="${yy+3}" text-anchor="middle" font-size="8.5" fill="white" font-family="DM Sans,Segoe UI,sans-serif">${money(last)}</text>`;
-  svg+=`<text x="8" y="277" font-size="8" fill="#aab59b">OLDER FILLS</text><text x="${w-r-9}" y="277" text-anchor="end" font-size="8" fill="#aab59b">MOST RECENT</text></svg>`;root.innerHTML=svg;
+  svg+=`<line x1="${l}" y1="${yy}" x2="${w-r+5}" y2="${yy}" stroke="#8bab75" stroke-width=".8" stroke-dasharray="3 3"/><rect x="${w-r+6}" y="${yy-11}" width="77" height="22" rx="3" fill="#648348"/><text x="${w-r+44}" y="${yy+4}" text-anchor="middle" font-size="12" fill="white" font-family="DM Sans,Segoe UI,sans-serif">${money(last)}</text>`;
+  svg+=`<text x="8" y="${h-4}" font-size="10" fill="#718266">OLDER</text><text x="${w-r-9}" y="${h-4}" text-anchor="end" font-size="10" fill="#718266">LATEST</text></svg>`;root.innerHTML=svg;
 }
 function renderBook(){const s=snapshot.stats;
   for(const [name,sideValue] of [['ask',1],['bid',0]]){let ls=(sideValue?snapshot.asks:snapshot.bids).slice(0,6);if(sideValue)ls=ls.reverse();
@@ -134,13 +135,14 @@ function renderLab(){
   function layout(n,depth){if(!n||depth>9||nodes.length>100)return;layout(map.get(n.left),depth+1);n.drawX=count++;n.drawY=depth;maxDepth=Math.max(maxDepth,depth);nodes.push(n);layout(map.get(n.right),depth+1);}
   if(root)layout(root,0);
   if(!selectedLevel||!map.size){const b=(treeSide?snapshot.asks:snapshot.bids)[0];if(b)selectedLevel={price:b.price,side:treeSide};}
-  if(nodes.length){const w=Math.max(500,nodes.length*72),h=Math.max(250,(maxDepth+1)*67+20),pos=new Map(nodes.map(n=>[n.index,{x:40+n.drawX*(w-80)/Math.max(1,count-1),y:28+n.drawY*66}]));
-    if(count===1)pos.set(nodes[0].index,{x:w/2,y:28});
-    let svg=`<svg viewBox="0 0 ${w} ${h}" style="min-width:${Math.min(1400,w)}px" role="img" aria-label="Actual ${treeSide?'ask':'bid'} AVL tree"><title>AVL price levels. Click a node to inspect FIFO.</title>`;
-    nodes.forEach(n=>{const p=pos.get(n.index);for(const child of [n.left,n.right]){const q=pos.get(child);if(q)svg+=`<path d="M${p.x} ${p.y+15}L${q.x} ${q.y-15}" stroke="#dce7cf" stroke-width="1.5"/>`;}});
+  if(nodes.length){const w=Math.max(500,nodes.length*140),h=Math.max(300,(maxDepth+1)*88+30),pos=new Map(nodes.map(n=>[n.index,{x:70+n.drawX*(w-140)/Math.max(1,count-1),y:36+n.drawY*88}]));
+    if(count===1)pos.set(nodes[0].index,{x:w/2,y:36});
+    let svg=`<svg viewBox="0 0 ${w} ${h}" style="width:${w}px;height:${h}px;max-width:none;flex-shrink:0" role="img" aria-label="Actual ${treeSide?'ask':'bid'} AVL tree"><title>AVL price levels. Click a node to inspect FIFO.</title>`;
+    nodes.forEach(n=>{const p=pos.get(n.index);for(const child of [n.left,n.right]){const q=pos.get(child);if(q)svg+=`<path d="M${p.x} ${p.y+24}L${q.x} ${q.y-24}" stroke="#dce7cf" stroke-width="1.5"/>`;}});
     nodes.forEach(n=>{const p=pos.get(n.index),selected=selectedLevel?.side===n.side&&selectedLevel.price===n.price,highlight=selectedEvent?.price===n.price;
-      svg+=`<g class="tree-node" data-node-price="${n.price}" data-node-side="${n.side}" tabindex="0" role="button" aria-label="${money(n.price)} rupees, ${n.count} orders, balance ${n.balance}"><rect x="${p.x-33}" y="${p.y-16}" width="66" height="33" rx="6" fill="${highlight?'#f7edce':selected?'#dfeccb':'#f8fbf2'}" stroke="${selected?'#93b272':'#dce7ce'}"/><text x="${p.x}" y="${p.y-1}" text-anchor="middle" font-size="9" font-family="DM Sans,Segoe UI,sans-serif" fill="#6a854e">${money(n.price)}</text><text x="${p.x}" y="${p.y+10}" text-anchor="middle" font-size="6.5" fill="#9aaa87">h${n.height} · bf ${n.balance} · ${n.count} orders</text></g>`;});
+      svg+=`<g class="tree-node" data-node-price="${n.price}" data-node-side="${n.side}" tabindex="0" role="button" aria-label="${money(n.price)} rupees, ${n.count} orders, balance ${n.balance}"><rect x="${p.x-60}" y="${p.y-24}" width="120" height="48" rx="7" fill="${highlight?'#f7edce':selected?'#dfeccb':'#f8fbf2'}" stroke="${selected?'#93b272':'#dce7ce'}"/><text x="${p.x}" y="${p.y-2}" text-anchor="middle" font-size="15" font-family="DM Sans,Segoe UI,sans-serif" fill="#4d6939">${money(n.price)}</text><text x="${p.x}" y="${p.y+15}" text-anchor="middle" font-size="11" fill="#66765d">h${n.height} · bf ${n.balance} · ${n.count} orders</text></g>`;});
     $('#tree-canvas').innerHTML=svg+'</svg>';
+    if(treeViewportSide!==treeSide){$('#tree-canvas').scrollLeft=Math.max(0,pos.get(root.index).x-$('#tree-canvas').clientWidth/2);treeViewportSide=treeSide;}
   }else $('#tree-canvas').innerHTML='<div class="empty-state">This side has no active price levels.<br>Add an order or try the AVL rotations scenario.</div>';
   $('#tree-stats').textContent=`${snapshot.stats.rotations} rotations · ${snapshot.stats.levels} total levels · showing ${nodes.length} on this side`;
   if(selectedLevel){const queue=JSON.parse(cstring(engine.tc_queue(selectedLevel.side,selectedLevel.price)));
@@ -229,4 +231,5 @@ async function init(){try{
   $('#engine-status').textContent='C engine ready';$('#status-dot').classList.add('ready');$('#simulation-toggle').disabled=false;$('#submit-order').disabled=false;
   $('#order-price').value=(snapshot.stats.lastPrice/100).toFixed(2);updateValue();
 }catch(error){$('#engine-status').textContent='Engine unavailable';$('#status-dot').style.background='#cf8072';toast(`${error.message} Reload the page or serve it over HTTP.`,true);$('#price-chart').innerHTML='<div class="chart-empty">The C engine could not load.<br>Reload this page using the website URL or the local C server.</div>';console.error(error);}}
+new ResizeObserver(()=>{if(snapshot&&currentView==='terminal')drawChart();}).observe($('#price-chart'));
 init();
