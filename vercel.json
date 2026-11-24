@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "buildCommand": "",
-  "installCommand": "",
-  "outputDirectory": "frontend"
+  "installCommand": "npm ci",
+  "outputDirectory": "frontend",
+  "regions": ["sin1"],
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api/index?__path=:path*" }],
+  "functions": { "api/**/*.js": { "maxDuration": 30, "includeFiles": "frontend/wasm/engine.wasm" } },
+  "headers": [{ "source": "/api/(.*)", "headers": [{ "key": "Cache-Control", "value": "private, no-store" }] }]
 }

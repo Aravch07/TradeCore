@@ -40,8 +40,8 @@ asan: | build
 bench: build/bench
 	./build/bench
 
-run: build/tradecore
-	./build/tradecore --port 8080 --static frontend
+run:
+	$(MAKE) -C upstream-simulation run
 
 clean:
 	rm -rf build

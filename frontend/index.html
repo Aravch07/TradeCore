@@ -1,24 +1,32 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TradeCore</title>
+  <meta name="theme-color" content="#126b59">
+  <meta name="description" content="A shared trading simulation powered by a C matching engine. Start with demo cash, four stocks, and a live order book.">
+  <title>TradeCore · Your trading desk</title>
   <link rel="icon" href="img/logo.svg">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/exchange.css?v=3">
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <a class="brand" href="#/overview"><img src="img/logo.svg" alt=""><span>TradeCore</span></a>
-      <nav class="nav" id="nav"></nav>
-      <div class="sidebar-foot">Academic simulation · fictitious stock TCX<br>C engine · private browser session<br>Reload starts a new session</div>
-    </aside>
-    <div class="main">
-      <header class="topbar" id="topbar"></header>
-      <main id="view"></main>
-    </div>
-  </div>
-  <script type="module" src="js/app.js"></script>
+  <a class="skip-link" href="#main">Skip to trading desk</a>
+  <header class="topbar">
+    <a class="brand" href="#/market"><span class="brand-mark" aria-hidden="true">↗</span>TradeCore<span class="brand-tag">PAPER EXCHANGE</span></a>
+    <nav class="primary-nav" aria-label="Main navigation"><a href="#/market" data-nav="market">Market</a><a href="#/portfolio" data-nav="portfolio">Portfolio</a><a href="#/lab" data-nav="lab">DSA lab</a><a href="/simulation/">Simulation</a></nav>
+    <div class="header-actions"><span class="connection" id="connection" role="status"><i></i>Connecting</span><button class="icon-button" id="theme-toggle" aria-label="Switch colour theme">◐</button><div id="account-control"><button class="button primary small" data-login>Sign in</button></div></div>
+  </header>
+  <main id="main" tabindex="-1"><div id="connection-error" class="connection-error" role="status" hidden></div>
+    <section class="page-heading"><div><div class="eyebrow">A LITTLE CAPITAL. A LOT TO EXPLORE.</div><h1 id="page-title">Your trading desk</h1><p id="page-description">Four demo stocks. Real order matching. A market shared with everyone.</p></div><div class="heading-actions"><span class="market-open"><i></i>Demo market open</span><button class="button" data-demo="flow">↗ Run 10 demo orders</button></div></section>
+    <div id="workspace"><div class="loading-panel"><span class="loader"></span><h2>Opening your market…</h2><p>Preparing seeded stocks, open orders, and trade history.</p><button class="button" data-refresh>Refresh market</button></div></div>
+  </main>
+  <footer class="footer"><span><b>TradeCore</b> · Academic trading simulation</span><span>Fictitious stocks & demo funds · C matching engine · Shared, persistent market</span><a href="https://github.com/Aravch07/TradeCore" target="_blank" rel="noreferrer">Explore the code ↗</a></footer>
+  <dialog id="auth-dialog" aria-labelledby="auth-title"><div class="auth-shell"><button class="dialog-close icon-button" data-close-dialog aria-label="Close sign in">×</button><div class="eyebrow">YOUR FIRST TRADE STARTS HERE</div><h2 id="auth-title">A trading account, ready to go.</h2><p class="auth-intro">Get ₹1,00,000 in demo cash and shares in all four companies. Pick a demo trader, or create your own account.</p>
+    <div class="demo-accounts" id="demo-accounts"></div><p class="demo-credential">Shared demo password: <code>TradeCore123!</code></p><div class="auth-divider"><span>or use your own account</span></div>
+    <div class="auth-mode"><button type="button" data-auth-mode="signin" class="active">Sign in</button><button type="button" data-auth-mode="signup">Create account</button></div>
+    <form id="auth-form"><label id="name-field" hidden>Your name<input name="name" autocomplete="name" maxlength="60" placeholder="Your name"></label><label>Email<input name="email" type="email" autocomplete="email" required placeholder="you@example.com" maxlength="200"></label><label>Password<input name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="At least 8 characters"></label><p class="form-error" id="auth-error" role="alert"></p><button type="submit" class="button primary full" id="auth-submit">Sign in</button></form><p class="auth-note">Demo accounts are public and shared. Create an account for your own portfolio. All funds and securities are fictitious.</p>
+  </div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script type="module" src="js/exchange-app.js?v=3"></script>
 </body>
 </html>

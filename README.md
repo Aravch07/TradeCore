@@ -1,38 +1,43 @@
-# TradeCore: a DSA-powered order-matching engine in C
+# TradeCore: a shared paper exchange and a C-powered simulation
 
-## Live browser edition
+Open **https://tcxcore.vercel.app**. The main desk has Market, Portfolio, DSA lab,
+and a Simulation option for Aaryaman's updated bot-trading experience.
 
-The Vercel edition runs the original C matching engine and JSON API as
-WebAssembly in a background worker. Open the site and use **Scenarios** to
-load and replay the worked example, or place orders in **Trading Terminal**.
-Each tab has its own private in-memory simulation. Reloading clears it;
-separate tabs do not share orders. No account, secrets, database, or external
-engine service is required. Browser timings describe WebAssembly execution.
+- Persistent sign-in and personal portfolios, shared across users and refreshes.
+- Four demo stocks: TCX, NOVA, APEX and ORBT.
+- Each new account starts with Rs 1,00,000 and shares in all four companies.
+- Initial market: 96 actual seeded fills and 128 resting buy/sell orders.
+- Instant trades, limit orders, cancellation, reservations and trade receipts.
+- Shared updates checked every 1.5 seconds; a light, responsive, scrollable GUI.
+- The original C AVL/FIFO/hash matching engine executes every shared order.
 
-The complete upstream source was imported from
-`Aaryaman-25/TradeCore` commit `3af564892838af7a5eb7114efa8446e4fc45ee97`
-in migration commit `e39253120311e31667b146b3ea0cb8f630abc380`.
-The browser adapter is a subsequent change. It includes a small 64-bit query
-parsing fix in `src/api.c` for wasm32/Windows; matching rules are unchanged.
-The previous project is preserved on `codex/backup-before-migration-2026-11-24`.
+Choose a demo account in Sign in. All four use the public password `TradeCore123!`:
+`arav@tradecore.test`, `priya@tradecore.test`, `rohan@tradecore.test`,
+`ananya@tradecore.test`. These accounts are shared; create your own account for
+an independent portfolio. Every stock and rupee is fictitious.
 
-Vercel serves `frontend/` with no install or build command. The compiled
-`frontend/wasm/engine.wasm` is committed so deployment needs no toolchain.
-To rebuild it, install the official
-[WASI SDK 34](https://github.com/WebAssembly/wasi-sdk/releases/tag/wasi-sdk-34)
-for your operating system, set `WASI_SDK_PATH` to its extracted directory,
-then run:
+**Simulation** opens the updated upstream interface with 12 bots, seeded history,
+market moods, flash crashes and DSA playback. Its login is `demo / demo1234`.
+It runs separately in your tab and resets on reload. The upstream source is
+preserved under `upstream-simulation/` at commit `f30903c`.
+
+See [the full setup, architecture and demo guide](docs/SHARED-EXCHANGE.md).
 
 ```sh
-npm run build:wasm
-npm run test:wasm
+npm ci
+# Configure .env.local with the connected Postgres database and auth secret.
+npm run setup
+npm start                 # http://127.0.0.1:4173
+npm run test:exchange
+npm run test:simulation
 ```
 
-Use any static HTTP server with `frontend/` as its root for a local browser
-preview. The native server workflow below still works. To connect the
-dashboard to that server instead of the browser engine, set **Settings →
-Engine & API → Engine URL** to the server's URL. Use HTTPS for a remote
-server when the dashboard is opened over HTTPS.
+The original project's default branch remains preserved on
+`codex/backup-before-migration-2026-11-24`. The exact first upstream import was
+commit `e392531`, followed by the browser adapter and this shared exchange.
+
+The following sections describe the underlying native matching core. For the
+new upstream native GUI/server, use `make -C upstream-simulation run`.
 
 ## Original native edition
 

@@ -1,10 +1,10 @@
 // Minimal WASI host for the unchanged C engine and JSON API.
-export async function createEngine(bytes) {
+export async function createEngine(bytes, { now = Date.now } = {}) {
   let memory;
   const view = () => new DataView(memory.buffer);
   const wasi = {
     clock_time_get(clock, precision, output) {
-      const ns = clock === 0 ? BigInt(Date.now()) * 1000000n : BigInt(Math.floor(performance.now() * 1e6));
+      const ns = clock === 0 ? BigInt(now()) * 1000000n : BigInt(Math.floor(performance.now() * 1e6));
       view().setBigUint64(output, ns, true);
       return 0;
     },
