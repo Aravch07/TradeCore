@@ -1,7 +1,3 @@
 build/
-.vercel/
-.tools/
-*.log
-*.tmp
-node_modules/
-session.tcx
+*.o
+.DS_Store

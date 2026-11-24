@@ -1,18 +1,47 @@
-CC ?= cc
-CFLAGS = -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -Iinclude
-.PHONY: all test wasm clean
-all: build/tradecore build/tradecore-server
+# TradeCore backend - pure C11, no external libraries.
+# Works with clang (macOS default) and gcc (Linux).
+
+CC      ?= cc
+CFLAGS  ?= -std=c11 -O2 -Wall -Wextra -Wpedantic -Wshadow
+DEFS    := -D_POSIX_C_SOURCE=200809L -D_DARWIN_C_SOURCE
+LDLIBS  += -lm
+
+CORE := src/trace.c src/order_list.c src/avl.c src/hashmap.c src/vec.c \
+        src/engine.c src/reference.c src/scenario.c
+SERVER := $(CORE) src/json.c src/api.c src/server.c
+
+.PHONY: all test asan bench run clean
+
+all: build/tradecore build/test_engine build/bench
+
 build:
 	mkdir -p build
-build/tradecore: src/engine.c src/cli.c include/tradecore.h | build
-	$(CC) $(CFLAGS) src/engine.c src/cli.c -o $@
-build/tradecore-server: src/server.c | build
-	$(CC) $(CFLAGS) src/server.c -o $@
-build/test-engine: src/engine.c tests/test_engine.c include/tradecore.h | build
-	$(CC) $(CFLAGS) src/engine.c tests/test_engine.c -o $@
-test: build/test-engine
-	./build/test-engine
-wasm:
-	clang --target=wasm32-unknown-unknown -std=c11 -O2 -Wall -Wextra -Werror -nostdlib -fno-builtin -Iinclude -Wl,--no-entry -Wl,--export-all -Wl,--export-memory -Wl,-z,stack-size=262144 -Wl,--initial-memory=4194304 -Wl,--max-memory=8388608 src/engine.c -o web/engine.wasm
+
+build/tradecore: $(SERVER) src/*.h | build
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(SERVER) $(LDLIBS)
+
+build/test_engine: $(CORE) src/json.c tests/test_engine.c src/*.h | build
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(CORE) src/json.c tests/test_engine.c $(LDLIBS)
+
+build/bench: $(CORE) bench/bench.c src/*.h | build
+	$(CC) $(CFLAGS) $(DEFS) -o $@ $(CORE) bench/bench.c $(LDLIBS)
+
+test: build/test_engine
+	./build/test_engine
+
+# AddressSanitizer + UndefinedBehaviorSanitizer: catches leaks, use-after-free,
+# buffer overflows and integer overflow while the tests run.
+asan: | build
+	$(CC) -std=c11 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer \
+	  $(DEFS) -Wall -Wextra \
+	  -o build/test_engine_asan $(CORE) src/json.c tests/test_engine.c $(LDLIBS)
+	./build/test_engine_asan
+
+bench: build/bench
+	./build/bench
+
+run: build/tradecore
+	./build/tradecore --port 8080 --static frontend
+
 clean:
-	rm -f build/tradecore build/tradecore-server build/test-engine
+	rm -rf build
