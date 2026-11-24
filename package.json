@@ -1,0 +1,9 @@
+{
+  "name": "tradecore",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "test:wasm": "node tests/test-wasm.mjs"
+  }
+}

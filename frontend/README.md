@@ -1,5 +1,11 @@
 # TradeCore dashboard (frontend)
 
+The Vercel/browser edition loads `wasm/engine.wasm` in a worker by default.
+It uses the same C engine and API as the native server. Each tab is isolated,
+and reloading resets its orders and trades. Navigate between dashboard pages
+in the same tab to inspect that session's DSA events. Set **Settings → Engine
+& API → Engine URL** to connect to a shared native server instead.
+
 This is plain HTML, CSS and JavaScript (ES modules), with no framework and no
 build step. The C engine serves it:
 

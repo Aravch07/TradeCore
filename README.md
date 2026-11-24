@@ -1,5 +1,41 @@
 # TradeCore: a DSA-powered order-matching engine in C
 
+## Live browser edition
+
+The Vercel edition runs the original C matching engine and JSON API as
+WebAssembly in a background worker. Open the site and use **Scenarios** to
+load and replay the worked example, or place orders in **Trading Terminal**.
+Each tab has its own private in-memory simulation. Reloading clears it;
+separate tabs do not share orders. No account, secrets, database, or external
+engine service is required. Browser timings describe WebAssembly execution.
+
+The complete upstream source was imported from
+`Aaryaman-25/TradeCore` commit `3af564892838af7a5eb7114efa8446e4fc45ee97`
+in migration commit `e39253120311e31667b146b3ea0cb8f630abc380`.
+The browser adapter is a subsequent change. It includes a small 64-bit query
+parsing fix in `src/api.c` for wasm32/Windows; matching rules are unchanged.
+The previous project is preserved on `codex/backup-before-migration-2026-11-24`.
+
+Vercel serves `frontend/` with no install or build command. The compiled
+`frontend/wasm/engine.wasm` is committed so deployment needs no toolchain.
+To rebuild it, install the official
+[WASI SDK 34](https://github.com/WebAssembly/wasi-sdk/releases/tag/wasi-sdk-34)
+for your operating system, set `WASI_SDK_PATH` to its extracted directory,
+then run:
+
+```sh
+npm run build:wasm
+npm run test:wasm
+```
+
+Use any static HTTP server with `frontend/` as its root for a local browser
+preview. The native server workflow below still works. To connect the
+dashboard to that server instead of the browser engine, set **Settings →
+Engine & API → Engine URL** to the server's URL. Use HTTPS for a remote
+server when the dashboard is opened over HTTPS.
+
+## Original native edition
+
 A pure C11 backend for the TradeCore proposal plus a browser dashboard. The
 backend has a hand-written matching engine (AVL trees, doubly linked FIFO
 queues, a hash table, dynamic arrays and a ring buffer) and a small HTTP +

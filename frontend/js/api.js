@@ -1,5 +1,6 @@
 // HTTP + Server-Sent Events client for the C engine (see docs/API.md).
 import { settings, bus, shared } from './store.js';
+import * as browserEngine from './browser-engine.js';
 
 const base = () => (settings.get('apiBase') || '').replace(/\/$/, '');
 
@@ -8,6 +9,12 @@ export const roundTrips = [];
 
 export async function api(path, { method = 'GET', body } = {}) {
   const t0 = performance.now();
+  if (!base()) {
+    const data = await browserEngine.request(method, path, body);
+    roundTrips.push({ t: Date.now(), ms: performance.now() - t0 });
+    if (roundTrips.length > 2000) roundTrips.shift();
+    return data;
+  }
   let res;
   try {
     res = await fetch(base() + path, {
@@ -30,10 +37,28 @@ export const post = (path, body = {}) => api(path, { method: 'POST', body });
 // ------------------------------------------------------------- live stream
 let es = null;
 let retryTimer = null;
+let disconnectBrowser = null;
 
 export function connectStream() {
   if (es) es.close();
   clearTimeout(retryTimer);
+  disconnectBrowser?.();
+  disconnectBrowser = null;
+  setConnected(false);
+  if (!base()) {
+    disconnectBrowser = browserEngine.connect((type, data) => {
+      if (type === 'hello') setConnected(true);
+      else if (type === 'error') { setConnected(false); console.error(data); }
+      else {
+        if (type === 'command') {
+          shared.commandLog.unshift(data);
+          if (shared.commandLog.length > 300) shared.commandLog.pop();
+        }
+        bus.emit(type, data);
+      }
+    });
+    return;
+  }
   es = new EventSource(base() + '/api/stream');
 
   es.addEventListener('hello', () => setConnected(true));

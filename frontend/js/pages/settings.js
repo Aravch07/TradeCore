@@ -117,7 +117,7 @@ function render() {
 
   <div class="card" id="sec-engine">
     <h3>Engine &amp; API</h3><div class="sub" style="margin-bottom:10px">Where the C engine runs and how much it traces. Trace switches apply immediately.</div>
-    ${row('Engine URL', 'Leave empty when the engine serves this page (./build/tradecore --static frontend).',
+    ${row('Engine URL', 'Leave empty for a private browser session. Reload resets it. Set a server URL to use a shared C engine.',
       `<div class="input" style="height:38px;width:260px"><input data-k="apiBase" placeholder="same origin" value="${esc(d.apiBase)}" style="font-size:15px"></div>`)}
     <div id="st-engine"></div>
     ${row('Reset Engine Session', 'Clears the order book, orders and trades in the running engine.', '<button class="btn danger sm" id="st-wipe">Reset Session</button>')}

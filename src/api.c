@@ -46,11 +46,12 @@ static int query_get(const char *q, const char *key, char *out, size_t cap) {
     return 0;
 }
 
-static long query_long(const char *q, const char *key, long def, long lo, long hi) {
+/* Timestamps and sequence ids remain 64-bit on wasm32 and Windows. */
+static int64_t query_long(const char *q, const char *key, int64_t def, int64_t lo, int64_t hi) {
     char v[32];
     if (!query_get(q, key, v, sizeof v)) return def;
     char *end;
-    long x = strtol(v, &end, 10);
+    int64_t x = strtoll(v, &end, 10);
     if (*end || end == v) return def;
     if (x < lo) x = lo;
     if (x > hi) x = hi;
@@ -357,8 +358,8 @@ static void h_orders(ApiState *s, const char *q, ApiResponse *out) {
 
 static void h_trades(ApiState *s, const char *q, ApiResponse *out) {
     long limit = query_long(q, "limit", 100, 1, 5000);
-    long since = query_long(q, "since_id", 0, 0, 0x7fffffffffffffffL);
-    long since_ms = query_long(q, "since_ms", 0, 0, 0x7fffffffffffffffL);
+    int64_t since = query_long(q, "since_id", 0, 0, INT64_MAX);
+    int64_t since_ms = query_long(q, "since_ms", 0, 0, INT64_MAX);
     const Engine *e = &s->engine;
     Buf *b = &out->body;
     out->status = 200;
@@ -366,7 +367,7 @@ static void h_trades(ApiState *s, const char *q, ApiResponse *out) {
     long n = 0;
     for (size_t i = e->trades.len; i-- > 0 && n < limit;) {
         const Trade *t = engine_trade(e, i);
-        if ((long)t->trade_id <= since || (long)t->time_ms < since_ms) break;
+        if (t->trade_id <= (uint64_t)since || t->time_ms < since_ms) break;
         if (n++) buf_puts(b, ",");
         put_trade(b, e, t);
     }
@@ -498,7 +499,7 @@ static void h_hash(ApiState *s, const char *q, ApiResponse *out) {
     HashMap *m = &s->engine.index;
     long from = query_long(q, "from", 0, 0, (long)m->cap - 1);
     long count = query_long(q, "count", 64, 1, 4096);
-    long lookup = query_long(q, "order_id", 0, 0, 0x7fffffffffffffffL);
+    int64_t lookup = query_long(q, "order_id", 0, 0, INT64_MAX);
     size_t maxc = 0, used = 0;
     for (size_t i = 0; i < m->cap; i++) {
         size_t c = hm_chain_len(m, i);
@@ -516,8 +517,8 @@ static void h_hash(ApiState *s, const char *q, ApiResponse *out) {
                (unsigned long long)s->engine.ctr.hash_probes);
     if (lookup) {
         size_t bk = hm_bucket_of(m, (tc_id)lookup);
-        buf_printf(b, "\"lookup\":{\"order_id\":%ld,\"bucket\":%zu,\"found\":%s},",
-                   lookup, bk, engine_active(&s->engine, (tc_id)lookup) ? "true" : "false");
+        buf_printf(b, "\"lookup\":{\"order_id\":%lld,\"bucket\":%zu,\"found\":%s},",
+                   (long long)lookup, bk, engine_active(&s->engine, (tc_id)lookup) ? "true" : "false");
         from = (long)bk;
         count = 1;
     }
@@ -538,7 +539,7 @@ static void h_hash(ApiState *s, const char *q, ApiResponse *out) {
 
 static void h_events(ApiState *s, const char *q, ApiResponse *out) {
     const Tracer *t = &s->engine.tracer;
-    long since = query_long(q, "since", 0, 0, 0x7fffffffffffffffL);
+    int64_t since = query_long(q, "since", 0, 0, INT64_MAX);
     long limit = query_long(q, "limit", 500, 1, 20000);
     uint64_t oldest = tracer_oldest_seq(t);
     uint64_t start = (uint64_t)since < oldest ? oldest : (uint64_t)since;
@@ -730,7 +731,7 @@ static tc_qty side_depth(const PriceLevel *n, size_t *orders) {
 
 /* Session market summary computed from the trade history: O(H). */
 static void h_summary(ApiState *s, const char *q, ApiResponse *out) {
-    long since_ms = query_long(q, "since_ms", 0, 0, 0x7fffffffffffffffL);
+    int64_t since_ms = query_long(q, "since_ms", 0, 0, INT64_MAX);
     const Engine *e = &s->engine;
     tc_price open = 0, high = 0, low = 0, last = 0, first_ever = 0;
     tc_qty volume = 0, buy_vol = 0, sell_vol = 0;

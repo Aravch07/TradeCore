@@ -2,7 +2,7 @@
 
 const DEFAULTS = {
   trader: 'ME',            // label attached to orders placed from this browser
-  apiBase: '',             // '' = same server that serves this page
+  apiBase: '',             // '' = C engine running in this browser tab
   theme: 'dark',
   compact: false,
   animMs: 150,
