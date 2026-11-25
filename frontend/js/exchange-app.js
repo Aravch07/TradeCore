@@ -318,6 +318,14 @@ document.addEventListener('submit', event => {
 document.addEventListener('change', event => { if (['order-symbol', 'lab-symbol'].includes(event.target.id)) changeStock(event.target.value); });
 document.addEventListener('input', event => { if (event.target.id === 'order-qty') { state.qty = Number(event.target.value); updateTicket(); } if (event.target.id === 'order-price') { state.price = event.target.value; updateTicket(); } });
 $('#theme-toggle').onclick = () => { const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = theme; try { localStorage.setItem('tradecore.theme', theme); } catch {} };
+$('#auth-email').addEventListener('invalid', event => {
+  if (event.target.value.trim().toLowerCase() === 'demo') {
+    const message = 'The demo username belongs to Simulation. Use the Open Simulation link above, or sign in here with arav@tradecore.test and TradeCore123!.';
+    event.target.setCustomValidity(message);
+    $('#auth-error').textContent = message;
+  }
+});
+$('#auth-email').addEventListener('input', event => { event.target.setCustomValidity(''); $('#auth-error').textContent = ''; });
 try { document.documentElement.dataset.theme = localStorage.getItem('tradecore.theme') || 'light'; } catch {}
 $('#demo-accounts').innerHTML = DEMOS.map(demo => `<button class="demo-account" data-demo-email="${demo.email}"><span class="avatar">${demo.initials}</span><span><b>Trade as ${demo.name}</b><small>₹1 lakh + starter stocks</small></span></button>`).join('');
 window.addEventListener('hashchange', route);
